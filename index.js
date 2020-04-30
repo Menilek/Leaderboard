@@ -12,30 +12,44 @@ const app = express();
 app.use(express.json());
 app.set('view engine', 'pug');
 
-getFighters = () => {
-    let fighters = []
-    axios.get('http://139.162.209.85:5000/api/').then(res => {
-        console.log('Retrieving data...')
-
-        for(var i = 0; i < res.data.fighters.length; i++){
-            var fighter = res.data.fighters[i];
-            fighters.push(fighter)
-        }
-
-        grappler = fighters[9].grappling
-        // console.log('Top Grappling Style: ' + grappler)
-
-        //Set data in Redis
-        client.setex(champ, 3600, grappler)
-
-        return(grappler);
-    })
+//TODO: pass params to query for number of fighters
+const getFighters = () => {
+    try{
+        let fighters = []
+        axios.get('http://139.162.209.85:5000/api/5').then(res => {
+            console.log('Retrieving data...')
+    
+            for(var i = 0; i < res.data.fighter.length; i++){
+                var fighter = res.data.fighter[i];
+                fighters.push(fighter)
+            }
+    
+            grappler = fighters[2].grappling
+            // console.log('Top Grappling Style: ' + grappler)
+    
+            let champ = fighters[0].name;
+            console.log(champ)
+            //Set data in Redis
+            client.setex(champ, 3600, grappler)
+    
+            return(grappler);
+        })
+    } catch(error) {
+        console.error(error)
+    }
 }
 
-app.get('/', function(req, res ){
+app.get('/', function(req, res){
     let fighter = getFighters()
-    console.log("late:" + fighter)
-    res.render('index', {title: 'Grappler', data: fighter})
+        .then(res => {
+            if(res.grappler){
+                console.log("late:" + fighter)
+                res.render('index', {title: 'Grappler', data: fighter})
+            }
+        })
+        .catch(error => {
+            console.log(error)
+        })
 });
 
 app.listen(PORT, () => {
